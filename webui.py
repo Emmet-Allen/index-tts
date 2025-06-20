@@ -40,7 +40,7 @@ import gradio as gr
 from indextts.infer import IndexTTS
 from tools.i18n.i18n import I18nAuto
 
-i18n = I18nAuto(language="zh_CN")
+i18n = I18nAuto(language="en-US")
 MODE = 'local'
 tts = IndexTTS(model_dir=cmd_args.model_dir, cfg_path=os.path.join(cmd_args.model_dir, "config.yaml"),)
 
@@ -56,7 +56,7 @@ with open("tests/cases.jsonl", "r", encoding="utf-8") as f:
             continue
         example = json.loads(line)
         example_cases.append([os.path.join("tests", example.get("prompt_audio", "sample_prompt.wav")),
-                              example.get("text"), ["普通推理", "批次推理"][example.get("infer_mode", 0)]])
+                              example.get("text"), ["General reasoning", "Batch Inference"][example.get("infer_mode", 0)]])
 
 def gen_single(prompt, text, infer_mode, max_text_tokens_per_sentence=120, sentences_bucket_max_size=4,
                 *args, progress=gr.Progress()):
@@ -79,7 +79,7 @@ def gen_single(prompt, text, infer_mode, max_text_tokens_per_sentence=120, sente
         # "typical_sampling": bool(typical_sampling),
         # "typical_mass": float(typical_mass),
     }
-    if infer_mode == "普通推理":
+    if infer_mode == "General reasoning":
         output = tts.infer(prompt, text, output_path, verbose=cmd_args.verbose,
                            max_text_tokens_per_sentence=int(max_text_tokens_per_sentence),
                            **kwargs)
@@ -104,26 +104,26 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
 <a href='https://arxiv.org/abs/2502.05512'><img src='https://img.shields.io/badge/ArXiv-2502.05512-red'></a>
 </p>
     ''')
-    with gr.Tab("音频生成"):
+    with gr.Tab("Audio Generation"):
         with gr.Row():
             os.makedirs("prompts",exist_ok=True)
-            prompt_audio = gr.Audio(label="参考音频",key="prompt_audio",
+            prompt_audio = gr.Audio(label="Reference Audio",key="prompt_audio",
                                     sources=["upload","microphone"],type="filepath")
             prompt_list = os.listdir("prompts")
             default = ''
             if prompt_list:
                 default = prompt_list[0]
             with gr.Column():
-                input_text_single = gr.TextArea(label="文本",key="input_text_single", placeholder="请输入目标文本", info="当前模型版本{}".format(tts.model_version or "1.0"))
-                infer_mode = gr.Radio(choices=["普通推理", "批次推理"], label="推理模式",info="批次推理：更适合长句，性能翻倍",value="普通推理")        
-                gen_button = gr.Button("生成语音", key="gen_button",interactive=True)
-            output_audio = gr.Audio(label="生成结果", visible=True,key="output_audio")
-        with gr.Accordion("高级生成参数设置", open=False):
+                input_text_single = gr.TextArea(label="Text",key="input_text_single", placeholder="Please enter the target text", info="Please enter the target text{}".format(tts.model_version or "1.0"))
+                infer_mode = gr.Radio(choices=["General reasoning", "Batch Inference"], label="Reasoning Mode",info="Batch reasoning: more suitable for long sentences, double the performance",value="General reasoning")
+                gen_button = gr.Button("Generating Speech", key="gen_button",interactive=True)
+            output_audio = gr.Audio(label="Generate results", visible=True,key="output_audio")
+        with gr.Accordion("Advanced build parameter settings", open=False):
             with gr.Row():
                 with gr.Column(scale=1):
-                    gr.Markdown("**GPT2 采样设置** _参数会影响音频多样性和生成速度详见[Generation strategies](https://huggingface.co/docs/transformers/main/en/generation_strategies)_")
+                    gr.Markdown("**GPT2 sampling settings** _ parameters affect audio diversity and generation speed. See[Generation strategies](https://huggingface.co/docs/transformers/main/en/generation_strategies)_")
                     with gr.Row():
-                        do_sample = gr.Checkbox(label="do_sample", value=True, info="是否进行采样")
+                        do_sample = gr.Checkbox(label="do_sample", value=True, info="Whether to perform sampling")
                         temperature = gr.Slider(label="temperature", minimum=0.1, maximum=2.0, value=1.0, step=0.1)
                     with gr.Row():
                         top_p = gr.Slider(label="top_p", minimum=0.0, maximum=1.0, value=0.8, step=0.01)
@@ -132,24 +132,24 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                     with gr.Row():
                         repetition_penalty = gr.Number(label="repetition_penalty", precision=None, value=10.0, minimum=0.1, maximum=20.0, step=0.1)
                         length_penalty = gr.Number(label="length_penalty", precision=None, value=0.0, minimum=-2.0, maximum=2.0, step=0.1)
-                    max_mel_tokens = gr.Slider(label="max_mel_tokens", value=600, minimum=50, maximum=tts.cfg.gpt.max_mel_tokens, step=10, info="生成Token最大数量，过小导致音频被截断", key="max_mel_tokens")
+                    max_mel_tokens = gr.Slider(label="max_mel_tokens", value=600, minimum=50, maximum=tts.cfg.gpt.max_mel_tokens, step=10, info="The maximum number of tokens generated. If the number is too small, the audio will be truncated.", key="max_mel_tokens")
                     # with gr.Row():
                     #     typical_sampling = gr.Checkbox(label="typical_sampling", value=False, info="不建议使用")
                     #     typical_mass = gr.Slider(label="typical_mass", value=0.9, minimum=0.0, maximum=1.0, step=0.1)
                 with gr.Column(scale=2):
-                    gr.Markdown("**分句设置** _参数会影响音频质量和生成速度_")
+                    gr.Markdown("****Phrase settings** _Parameters affect audio quality and generation speed_")
                     with gr.Row():
                         max_text_tokens_per_sentence = gr.Slider(
-                            label="分句最大Token数", value=120, minimum=20, maximum=tts.cfg.gpt.max_text_tokens, step=2, key="max_text_tokens_per_sentence",
-                            info="建议80~200之间，值越大，分句越长；值越小，分句越碎；过小过大都可能导致音频质量不高",
+                            label="Maximum number of tokens in a clause", value=120, minimum=20, maximum=tts.cfg.gpt.max_text_tokens, step=2, key="max_text_tokens_per_sentence",
+                            info="It is recommended to be between 80 and 200. The larger the value, the longer the sentence; the smaller the value, the more fragmented the sentence; too small or too large may result in poor audio quality",
                         )
                         sentences_bucket_max_size = gr.Slider(
-                            label="分句分桶的最大容量（批次推理生效）", value=4, minimum=1, maximum=16, step=1, key="sentences_bucket_max_size",
-                            info="建议2-8之间，值越大，一批次推理包含的分句数越多，过大可能导致内存溢出",
+                            label="Maximum capacity of clause buckets (batch inference takes effect)）", value=4, minimum=1, maximum=16, step=1, key="sentences_bucket_max_size",
+                            info="It is recommended to set the value between 2 and 8. The larger the value, the more clauses a batch of inferences contains. Too large a value may cause memory overflow.",
                         )
-                    with gr.Accordion("预览分句结果", open=True) as sentences_settings:
+                    with gr.Accordion("Preview sentence results", open=True) as sentences_settings:
                         sentences_preview = gr.Dataframe(
-                            headers=["序号", "分句内容", "Token数"],
+                            headers=["Serial number", "Sentence content", "Number of Tokens"],
                             key="sentences_preview",
                             wrap=True,
                         )
@@ -180,7 +180,7 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                 sentences_preview: gr.update(value=data, visible=True, type="array"),
             }
         else:
-            df = pd.DataFrame([], columns=["序号", "分句内容", "Token数"])
+            df = pd.DataFrame([], columns=["Serial number", "Sentence content", "Number of Tokens"])
             return {
                 sentences_preview: gr.update(value=df)
             }
